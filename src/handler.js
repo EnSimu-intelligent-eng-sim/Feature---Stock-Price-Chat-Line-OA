@@ -1,8 +1,5 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
-const stockList = require('./stockList.js');
-const { fetchStockData, findClosestMatch } = require('./utils');
-const { generateImage } = require("./generateImage.js")
+const { fetchStockData, findClosestMatches } = require('./utils');
+const stockList = require('../client/stockList');
 
 async function handleEvent(event, client) {
     if (event.type !== 'message' || event.message.type !== 'text') {
@@ -16,13 +13,13 @@ async function handleEvent(event, client) {
     let stockData = stock;
 
     if (!stock) {
-        const closestMatch = findClosestMatch(stockSymbol, stockList);
-        if (closestMatch) {
-            stockData = closestMatch;
+        const closestMatches = findClosestMatches(stockSymbol, stockList);
+        if (closestMatches.length > 0) {
+            replyMessage = `Did you mean one of these?\n${closestMatches.map(stock => `- ${stock.Symbol}: ${stock.Company}`).join('\n')}`;
+        } else {
+            replyMessage = `Sorry, I couldn't find a match for the stock symbol ${stockSymbol}.`;
         }
-    }
-
-    if (stockData) {
+    } else {
         try {
             const scrapedData = await fetchStockData(stockData.Symbol);
 
@@ -44,8 +41,6 @@ Value: ${scrapedData.value.toFixed(2)} (,000) Bath
         } catch (error) {
             replyMessage = `An error occurred while fetching stock data for ${stockData.Symbol}.`;
         }
-    } else {
-        replyMessage = `Sorry, I couldn't find a close match for the stock symbol ${stockSymbol}.`;
     }
 
     return client.replyMessage(event.replyToken, { type: 'text', text: replyMessage });

@@ -1,6 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const stringSimilarity = require('string-similarity');  // Add this to your package.json
+const stringSimilarity = require('string-similarity');
 
 async function fetchStockData(symbol) {
     try {
@@ -8,7 +8,6 @@ async function fetchStockData(symbol) {
         const { data } = await axios.get(url);
         const $ = cheerio.load(data);
 
-        // Extract and format the data
         const stockPriceText = $('.quote-info-left-values').first().text().trim();
         const highPriceText = $('.quote-market-high span').last().text().trim();
         const lowPriceText = $('.quote-market-low span').last().text().trim();
@@ -16,7 +15,6 @@ async function fetchStockData(symbol) {
         const valueText = $('.quote-market-cost span').last().text().trim();
         const changeText = $('.quote-info-left-values h3').text().trim();
 
-        // Convert text to numeric values
         const stockPrice = parseFloat(stockPriceText.replace(/[^0-9.]/g, ''));
         const highPrice = parseFloat(highPriceText.replace(/[^0-9.]/g, ''));
         const lowPrice = parseFloat(lowPriceText.replace(/[^0-9.]/g, ''));
@@ -24,11 +22,9 @@ async function fetchStockData(symbol) {
         const value = parseFloat(valueText.replace(/[^0-9.]/g, ''));
         const change = changeText;
 
-        // Get the current timestamp in the desired format (DD/MM/YYYY)
         const date = new Date();
         const timestamp = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 
-        // Return the formatted stock data
         return {
             price: stockPrice,
             change: change,
@@ -44,20 +40,18 @@ async function fetchStockData(symbol) {
     }
 }
 
-function findClosestMatch(userInput, stockList) {
-    const threshold = 0.6; // Similarity threshold
-    let bestMatch = null;
-    let bestSimilarity = 0;
+function findClosestMatches(input, stockList) {
+    const threshold = 0.6;
+    const matches = [];
 
     for (const stock of stockList) {
-        const similarity = stringSimilarity.compareTwoStrings(userInput, stock.Symbol);
-        if (similarity > bestSimilarity) {
-            bestSimilarity = similarity;
-            bestMatch = stock;
+        const similarity = stringSimilarity.compareTwoStrings(input, stock.Symbol);
+        if (similarity > threshold) {
+            matches.push(stock);
         }
     }
 
-    return bestSimilarity > threshold ? bestMatch : null;
+    return matches.sort((a, b) => stringSimilarity.compareTwoStrings(input, b.Symbol) - stringSimilarity.compareTwoStrings(input, a.Symbol)).slice(0, 4);
 }
 
-module.exports = { fetchStockData, findClosestMatch };
+module.exports = { fetchStockData, findClosestMatches };
