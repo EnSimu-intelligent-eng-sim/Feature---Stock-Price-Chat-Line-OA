@@ -11,12 +11,17 @@
   },
   "name": "feature-~-stock-price-chat-line-oa",
   "version": "1.0.0",
-  "main": "servers.js",
+  "main": "src/servers.js",
   "scripts": {
+    "start": "node src/servers.js",
+    "dev": "nodemon src/servers.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
 }
