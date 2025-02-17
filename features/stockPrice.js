@@ -1,6 +1,6 @@
 const stockList = require('../../client/stockList');
 const { fetchStockData, findClosestMatches } = require('../../src/utils');
-const stockPriceCard = require('../../templates/stockPriceCard');
+const stockPriceCard = require('../templates/stockPriceCard');
 
 
 async function handleStockPrice(event, client) {
