@@ -87,6 +87,8 @@ function convert(value, fromUnit, toUnit) {
   return (value * fromFactor) / toFactor;
 }
 
+const unitConverterCard = require('../templates/unitConverterCard');
+
 async function handleUnitConversion(event, client) {
   const text = event.message.text;
   // Expected format: "convert <value> <fromUnit> to <toUnit>"
@@ -104,9 +106,22 @@ async function handleUnitConversion(event, client) {
   
   try {
     const result = convert(parseFloat(value), fromUnit, toUnit);
+    
+    // Create a copy of the card template
+    const card = JSON.parse(JSON.stringify(unitConverterCard));
+    
+    // Replace placeholders with actual values
+    const timestamp = new Date().toLocaleString();
+    
+    // Update the conversion values in the card
+    card.body.contents[1].contents[0].contents[1].text = `${value} ${fromUnit}`;
+    card.body.contents[1].contents[1].contents[1].text = `${result.toFixed(4)} ${toUnit}`;
+    card.body.contents[3].contents[1].text = timestamp;
+    
     await client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: `${value} ${fromUnit} = ${result.toFixed(4)} ${toUnit}`
+      type: 'flex',
+      altText: `Conversion: ${value} ${fromUnit} to ${toUnit}`,
+      contents: card
     });
   } catch (error) {
     await client.replyMessage(event.replyToken, {

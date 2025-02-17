@@ -65,38 +65,44 @@ async function handleThermodynamics(event, client) {
       }
     }
 
+    const thermodynamicsCard = require('../templates/thermodynamicsCard');
     const idealGas = new IdealGas();
     const result = idealGas.interpolate(properties);
     
-    // Format the result message
-    let replyText = 'Ideal Gas Calculation Result:\n';
-    for (const [prop, value] of Object.entries(result)) {
-      let displayValue = value;
-      let unit = '';
-      
-      switch (prop) {
-        case 'P':
-          displayValue = convert(value, 'Pa', 'atm');
-          unit = 'atm';
-          break;
-        case 'T':
-          unit = 'K';
-          break;
-        case 'V':
-          displayValue = convert(value, 'm3', 'L');
-          unit = 'L';
-          break;
-        case 'n':
-          unit = 'mol';
-          break;
-      }
-      
-      replyText += `${prop}: ${displayValue.toFixed(4)} ${unit}\n`;
-    }
+    // Create a copy of the card template
+    const card = JSON.parse(JSON.stringify(thermodynamicsCard));
+    
+    // Convert values to display units and update card
+    const displayValues = {
+      P: convert(result.P || properties.P, 'Pa', 'atm').toFixed(4),
+      V: convert(result.V || properties.V, 'm3', 'L').toFixed(4),
+      T: (result.T || properties.T).toFixed(4),
+      n: (result.n || properties.n).toFixed(4)
+    };
+
+    // Update all values in the card
+    const contents = card.body.contents[3].contents;
+    contents[0].contents[1].text = `${displayValues.P} atm`;
+    contents[1].contents[1].text = `${displayValues.V} L`;
+    contents[2].contents[1].text = `${displayValues.n} mol`;
+    contents[3].contents[1].text = `${displayValues.T} K`;
+
+    // Update timestamp and calculated property info
+    const timestamp = new Date().toLocaleString();
+    card.body.contents[5].contents[1].text = timestamp;
+
+    // Indicate which property was calculated
+    let calculatedProperty = '';
+    if (!properties.P) calculatedProperty = 'Calculated Pressure (P)';
+    if (!properties.V) calculatedProperty = 'Calculated Volume (V)';
+    if (!properties.T) calculatedProperty = 'Calculated Temperature (T)';
+    if (!properties.n) calculatedProperty = 'Calculated Moles (n)';
+    card.body.contents[5].contents[1].text = calculatedProperty;
 
     await client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: replyText
+      type: 'flex',
+      altText: 'Ideal Gas Law Calculation Result',
+      contents: card
     });
 
   } catch (error) {
