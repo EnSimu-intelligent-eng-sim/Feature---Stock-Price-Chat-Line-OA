@@ -1,5 +1,7 @@
 const stockList = require('../../client/stockList');
 const { fetchStockData, findClosestMatches } = require('../../src/utils');
+const stockPriceCard = require('../../templates/stockPriceCard');
+
 
 async function handleStockPrice(event, client) {
     const stockSymbol = event.message.text.toUpperCase().trim();
@@ -27,71 +29,35 @@ async function handleStockPrice(event, client) {
             const scrapedData = await fetchStockData(stock.Symbol);
 
             if (scrapedData) {
+                // Clone the template to avoid modifying the original
+                const template = JSON.parse(JSON.stringify(stockPriceCard));
+                
+                // Replace template placeholders with actual data
+                const contents = template.body.contents;
+                contents[0].text = scrapedData.marketTrend.includes('Bullish') ? 'Market: Bullish' :
+                                 scrapedData.marketTrend.includes('Bearish') ? 'Market: Bearish' : 'Market: Neutral';
+                contents[0].color = scrapedData.marketTrend.includes('Bullish') ? '#00b300' :
+                                  scrapedData.marketTrend.includes('Bearish') ? '#ff0000' : '#888888';
+                contents[1].text = stockSymbol;
+                contents[2].text = stock.Company;
+
+                // Update price information
+                const priceBox = contents[4].contents;
+                priceBox[0].contents[1].text = `${scrapedData.price.toFixed(2)} Baht`;
+                priceBox[1].contents[1].text = `${scrapedData.change} (${scrapedData.percentageChange})`;
+                priceBox[1].contents[1].color = scrapedData.change.startsWith('-') ? '#FF0000' : '#00FF00';
+                priceBox[2].contents[1].text = `${scrapedData.high.toFixed(2)}/${scrapedData.low.toFixed(2)}`;
+                priceBox[3].contents[1].text = scrapedData.volume.toLocaleString();
+
+                // Update footer information
+                const footer = priceBox[5].contents;
+                footer[0].text = scrapedData.volumeAnalysis || 'Stock Exchange of Thailand (SET)';
+                footer[1].text = scrapedData.timestamp;
+
                 replyMessage = {
                     type: 'flex',
                     altText: `Stock Price for ${stock.Symbol}`,
-                    contents: {
-                        type: 'bubble',
-                        body: {
-                            type: 'box',
-                            layout: 'vertical',
-                            contents: [
-                                { type: 'text', text: stockSymbol, weight: 'bold', size: 'xxl', margin: 'md' },
-                                { type: 'text', text: stock.Company, size: 'xs', color: '#aaaaaa', wrap: true },
-                                { type: 'separator', margin: 'md' },
-                                {
-                                    type: 'box',
-                                    layout: 'vertical',
-                                    margin: 'md',
-                                    spacing: 'sm',
-                                    contents: [
-                                        {
-                                            type: 'box',
-                                            layout: 'horizontal',
-                                            contents: [
-                                                { type: 'text', text: 'Price:', size: 'sm', color: '#555555', flex: 0 },
-                                                { type: 'text', text: `${scrapedData.price.toFixed(2)} Baht`, size: 'sm', color: '#111111', align: 'end' }
-                                            ]
-                                        },
-                                        {
-                                            type: 'box',
-                                            layout: 'horizontal',
-                                            contents: [
-                                                { type: 'text', text: 'Change:', size: 'sm', color: '#555555', flex: 0 },
-                                                { type: 'text', text: scrapedData.change, size: 'sm', color: scrapedData.change.startsWith('-') ? '#FF0000' : '#00FF00', align: 'end', weight: 'bold' }
-                                            ]
-                                        },
-                                        {
-                                            type: 'box',
-                                            layout: 'horizontal',
-                                            contents: [
-                                                { type: 'text', text: 'High/Low:', size: 'sm', color: '#555555', flex: 0 },
-                                                { type: 'text', text: `${scrapedData.high.toFixed(2)}/${scrapedData.low.toFixed(2)}`, size: 'sm', color: '#111111', align: 'end' }
-                                            ]
-                                        },
-                                        {
-                                            type: 'box',
-                                            layout: 'horizontal',
-                                            contents: [
-                                                { type: 'text', text: 'Volume:', size: 'sm', color: '#555555', flex: 0 },
-                                                { type: 'text', text: scrapedData.volume.toLocaleString(), size: 'sm', color: '#111111', align: 'end' }
-                                            ]
-                                        }
-                                    ]
-                                },
-                                { type: 'separator', margin: 'md' },
-                                {
-                                    type: 'box',
-                                    layout: 'vertical',
-                                    margin: 'md',
-                                    contents: [
-                                        { type: 'text', text: 'Stock Exchange of Thailand (SET)', size: 'xs', color: '#aaaaaa', flex: 0 },
-                                        { type: 'text', text: scrapedData.timestamp, color: '#aaaaaa', size: 'xxs', align: 'start' }
-                                    ]
-                                }
-                            ]
-                        }
-                    }
+                    contents: template
                 };
             } else {
                 replyMessage = { type: 'text', text: `Sorry, I couldn't retrieve the stock data for ${stock.Symbol}.` };
